@@ -1,0 +1,9 @@
+[package]
+name = "rust-ci-example"
+version = "0.1.0"
+edition = "2021"
+authors = ["kudiko <you@example.com>"]
+description = "A tiny Rust project to demonstrate GitHub Actions CI."
+license = "MIT"
+
+[dependencies]
