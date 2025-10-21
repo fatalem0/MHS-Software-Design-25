@@ -21,10 +21,6 @@ impl Repl {
             "REPL started with bin path: {:?} and env vars: {:?}",
             self.bin_path, self.env_vars
         );
-
-        loop {
-            break;
-        }
     }
 }
 
