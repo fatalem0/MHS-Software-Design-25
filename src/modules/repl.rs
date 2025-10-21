@@ -10,9 +10,20 @@ pub struct Repl {
 impl Repl {
     pub fn new(init: &Init) -> Self {
         let bin_path = init.bin_path.clone();
-        Repl { 
+        Repl {
             bin_path,
             env_vars: init.env_vars().clone(),
+        }
+    }
+
+    pub fn run(&self) {
+        println!(
+            "REPL started with bin path: {:?} and env vars: {:?}",
+            self.bin_path, self.env_vars
+        );
+
+        loop {
+            break;
         }
     }
 }
