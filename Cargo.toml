@@ -1,5 +1,5 @@
 [package]
-name = "rust-ci-example"
+name = "cli_rust"
 version = "0.1.0"
 edition = "2021"
 authors = ["kudiko <you@example.com>"]
