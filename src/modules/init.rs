@@ -66,3 +66,33 @@ impl Default for Init {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_init_creation() {
+        let init = Init::new();
+        assert!(!init.env_vars.is_empty());
+        assert!(init.bin_path.to_string_lossy().contains("target"));
+    }
+
+    #[test]
+    fn test_with_config_init() {
+        let mut env_vars = HashMap::new();
+        env_vars.insert("TEST_VAR".to_string(), "42".to_string());
+        let bin_path = PathBuf::from("/test_path/bin");
+
+        let init = Init::with_config(env_vars, bin_path.clone());
+        assert_eq!(init.get_env("TEST_VAR"), Some(&"42".to_string()));
+        assert_eq!(init.bin_path, bin_path);
+    }
+
+    #[test]
+    fn test_set_env() {
+        let mut init = Init::new();
+        init.set_env("NEW_VAR".to_string(), "new_value".to_string());
+        assert_eq!(init.get_env("NEW_VAR"), Some(&"new_value".to_string()));
+    }
+}
