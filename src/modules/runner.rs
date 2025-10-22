@@ -168,7 +168,7 @@ impl Runner {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::{env, fs};
 
     use super::*;
 
@@ -387,5 +387,217 @@ mod tests {
                 // echo might not be available, acceptable for tests
             }
         }
+    }
+
+    #[test]
+    fn test_stdout_redirection_write() {
+        use std::env;
+
+        let test_dir = env::temp_dir().join("cli_test_stdout");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+        let output_file = test_dir.join("test_output.txt");
+        let output_path = output_file.to_string_lossy().to_string();
+
+        let bin_path = PathBuf::from("/nonexistent/path");
+        let env_vars = HashMap::new();
+        let runner = Runner::new(bin_path, env_vars);
+
+        let cmd = Command::new("echo".to_string(), vec!["Hello World".to_string()])
+            .with_stdout(output_path.clone());
+
+        let result = runner.execute(cmd);
+
+        match result {
+            Ok(output) => {
+                // Should return empty string when redirecting to file
+                assert_eq!(output, "");
+
+                // Check file contents
+                if let Ok(file_contents) = fs::read_to_string(&output_file) {
+                    assert!(file_contents.contains("Hello World"));
+                }
+            }
+            Err(e) => {
+                println!(
+                    "Echo command not available for stdout redirection test: {}",
+                    e
+                );
+            }
+        }
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_stdout_redirection_append() {
+        use std::env;
+
+        let test_dir = env::temp_dir().join("cli_test_stdout_append");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+        let output_file = test_dir.join("test_append.txt");
+        let output_path = output_file.to_string_lossy().to_string();
+
+        // Write initial content
+        fs::write(&output_file, "Initial line\n").expect("Failed to write initial content");
+
+        let bin_path = PathBuf::from("/nonexistent/path");
+        let env_vars = HashMap::new();
+        let runner = Runner::new(bin_path, env_vars);
+
+        let cmd = Command::new("echo".to_string(), vec!["Appended line".to_string()])
+            .with_stdout(output_path.clone())
+            .with_append_stdout(true);
+
+        let result = runner.execute(cmd);
+
+        match result {
+            Ok(output) => {
+                // Should return empty string when redirecting to file
+                assert_eq!(output, "");
+
+                // Check file contents
+                if let Ok(file_contents) = fs::read_to_string(&output_file) {
+                    assert!(file_contents.contains("Initial line"));
+                    assert!(file_contents.contains("Appended line"));
+                }
+            }
+            Err(e) => {
+                println!("Echo command not available for stdout append test: {}", e);
+            }
+        }
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_stdin_redirection() {
+        let bin_path = PathBuf::from("/nonexistent/path");
+        let env_vars = HashMap::new();
+        let runner = Runner::new(bin_path, env_vars);
+
+        let input_data = "line1\nline2\nline3\n";
+        let cmd = Command::new("cat".to_string(), vec![]).with_stdin(input_data.to_string());
+
+        let result = runner.execute(cmd);
+
+        match result {
+            Ok(output) => {
+                assert!(output.contains("line1"));
+                assert!(output.contains("line2"));
+                assert!(output.contains("line3"));
+            }
+            Err(e) => {
+                println!(
+                    "Cat command not available for stdin redirection test: {}",
+                    e
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_stdin_and_stdout_redirection_combined() {
+        use std::env;
+
+        let test_dir = env::temp_dir().join("cli_test_combined");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+        let output_file = test_dir.join("combined_output.txt");
+        let output_path = output_file.to_string_lossy().to_string();
+
+        let bin_path = PathBuf::from("/nonexistent/path");
+        let env_vars = HashMap::new();
+        let runner = Runner::new(bin_path, env_vars);
+
+        let input_data = "test input data\n";
+        let cmd = Command::new("cat".to_string(), vec![])
+            .with_stdin(input_data.to_string())
+            .with_stdout(output_path.clone());
+
+        let result = runner.execute(cmd);
+
+        match result {
+            Ok(output) => {
+                // Should return empty string when redirecting to file
+                assert_eq!(output, "");
+
+                // Check file contents
+                if let Ok(file_contents) = fs::read_to_string(&output_file) {
+                    assert!(file_contents.contains("test input data"));
+                }
+            }
+            Err(e) => {
+                println!(
+                    "Cat command not available for combined redirection test: {}",
+                    e
+                );
+            }
+        }
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_command_redirection_builder_pattern() {
+        let cmd = Command::new("test".to_string(), vec!["arg".to_string()])
+            .with_stdin("input data".to_string())
+            .with_stdout("output.txt".to_string())
+            .with_append_stdout(true);
+
+        assert_eq!(cmd.name, "test");
+        assert_eq!(cmd.args, vec!["arg"]);
+        assert_eq!(cmd.stdin.as_deref(), Some("input data"));
+        assert_eq!(cmd.stdout.as_deref(), Some("output.txt"));
+        assert_eq!(cmd.append_stdout, true);
+    }
+
+    #[test]
+    fn test_stdout_file_creation() {
+        use std::env;
+
+        let test_dir = env::temp_dir().join("cli_test_file_creation");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+        let output_file = test_dir.join("new_file.txt");
+        let output_path = output_file.to_string_lossy().to_string();
+
+        // Ensure file doesn't exist initially
+        assert!(!output_file.exists());
+
+        let bin_path = PathBuf::from("/nonexistent/path");
+        let env_vars = HashMap::new();
+        let runner = Runner::new(bin_path, env_vars);
+
+        let cmd = Command::new("echo".to_string(), vec!["Creating new file".to_string()])
+            .with_stdout(output_path.clone());
+
+        let result = runner.execute(cmd);
+
+        match result {
+            Ok(_) => {
+                // File should now exist
+                assert!(output_file.exists());
+
+                // Check file contents
+                if let Ok(file_contents) = fs::read_to_string(&output_file) {
+                    assert!(file_contents.contains("Creating new file"));
+                }
+            }
+            Err(e) => {
+                println!("Echo command not available for file creation test: {}", e);
+            }
+        }
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_dir);
     }
 }

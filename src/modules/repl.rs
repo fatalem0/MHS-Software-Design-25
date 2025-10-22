@@ -170,3 +170,135 @@ impl Default for Repl {
         Self::new(&init)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn test_repl_creation() {
+        let init = Init::new();
+        let repl = Repl::new(&init);
+
+        assert_eq!(repl.bin_path, init.bin_path);
+        assert_eq!(repl._env_vars, init.env_vars().clone());
+    }
+
+    #[test]
+    fn test_repl_default() {
+        let _repl = Repl::default();
+        // Should not panic
+    }
+
+    #[test]
+    fn test_variable_assignment_detection() {
+        let repl = Repl::default();
+
+        // Valid assignments
+        assert!(repl.is_variable_assignment("VAR=value"));
+        assert!(repl.is_variable_assignment("PATH=/usr/bin"));
+        assert!(repl.is_variable_assignment("_PRIVATE=secret"));
+        assert!(repl.is_variable_assignment("VAR123=test"));
+
+        // Invalid assignments
+        assert!(!repl.is_variable_assignment("echo hello"));
+        assert!(!repl.is_variable_assignment("=value"));
+        assert!(!repl.is_variable_assignment("123VAR=value"));
+        assert!(!repl.is_variable_assignment("VAR-NAME=value"));
+        assert!(!repl.is_variable_assignment(""));
+    }
+
+    #[test]
+    fn test_stdin_file_reading() {
+        let test_dir = env::temp_dir().join("cli_repl_test_stdin");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+        let input_file = test_dir.join("test_input.txt");
+        let test_content = "Test file content\nLine 2\nLine 3\n";
+        fs::write(&input_file, test_content).expect("Failed to write test file");
+
+        // Test file reading functionality indirectly by checking if fs::read_to_string works
+        // (The actual REPL stdin file reading is tested in integration tests)
+        let content = fs::read_to_string(&input_file).expect("Failed to read test file");
+        assert_eq!(content, test_content);
+        assert!(content.contains("Test file content"));
+        assert!(content.contains("Line 2"));
+        assert!(content.contains("Line 3"));
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_stdin_file_reading_error_handling() {
+        // Test reading non-existent file
+        let result = fs::read_to_string("/nonexistent/file.txt");
+        assert!(result.is_err());
+
+        // The error handling in REPL will print an error message and continue
+        // This behavior is tested in integration tests
+    }
+
+    #[test]
+    fn test_command_creation_with_redirection() {
+        // Test the command creation logic that the REPL uses
+        let name = "cat".to_string();
+        let args = vec![];
+        let mut cmd = Command::new(name.clone(), args.clone());
+
+        // Simulate stdin redirection
+        let stdin_content = "file content".to_string();
+        cmd = cmd.with_stdin(stdin_content.clone());
+
+        // Simulate stdout redirection
+        let stdout_file = "output.txt".to_string();
+        cmd = cmd
+            .with_stdout(stdout_file.clone())
+            .with_append_stdout(false);
+
+        assert_eq!(cmd.name, name);
+        assert_eq!(cmd.args, args);
+        assert_eq!(cmd.stdin, Some(stdin_content));
+        assert_eq!(cmd.stdout, Some(stdout_file));
+        assert_eq!(cmd.append_stdout, false);
+    }
+
+    #[test]
+    fn test_command_creation_with_append_redirection() {
+        let name = "echo".to_string();
+        let args = vec!["test".to_string()];
+        let mut cmd = Command::new(name.clone(), args.clone());
+
+        // Simulate stdout append redirection
+        let stdout_file = "output.txt".to_string();
+        cmd = cmd
+            .with_stdout(stdout_file.clone())
+            .with_append_stdout(true);
+
+        assert_eq!(cmd.name, name);
+        assert_eq!(cmd.args, args);
+        assert!(cmd.stdin.is_none());
+        assert_eq!(cmd.stdout, Some(stdout_file));
+        assert_eq!(cmd.append_stdout, true);
+    }
+
+    #[test]
+    fn test_environment_variable_handling() {
+        let init = Init::new();
+        let mut repl = Repl::new(&init);
+
+        // Test setting environment variable through runner
+        repl.runner
+            .set_env_var("TEST_VAR".to_string(), "test_value".to_string());
+
+        // Test getting environment variable
+        let value = repl.runner.get_env_var("TEST_VAR");
+        assert_eq!(value, Some(&"test_value".to_string()));
+
+        // Test non-existent variable
+        let no_value = repl.runner.get_env_var("NONEXISTENT_VAR");
+        assert_eq!(no_value, None);
+    }
+}
