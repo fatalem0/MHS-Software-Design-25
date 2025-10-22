@@ -1,4 +1,4 @@
-use crate::modules::input::errors::{CliError, Result};
+use crate::modules::input::errors::Result;
 use crate::modules::input::token::{Token, TokenMode};
 
 pub struct QuoteHandler;
@@ -11,10 +11,10 @@ impl QuoteHandler {
             let s = piece.as_str();
             let cleaned = if s.starts_with('\'') && s.ends_with('\'') && s.len() >= 2 {
                 mode = TokenMode::Raw;
-                s[1..s.len()-1].to_string()
+                s[1..s.len() - 1].to_string()
             } else if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
                 mode = TokenMode::Weak;
-                unescape_double_quoted(&s[1..s.len()-1])
+                unescape_double_quoted(&s[1..s.len() - 1])
             } else {
                 unescape_unquoted(s)
             };
@@ -39,7 +39,9 @@ fn unescape_double_quoted(s: &str) -> String {
                     out.push(n);
                 }
             }
-        } else { out.push(c) }
+        } else {
+            out.push(c)
+        }
     }
     out
 }
@@ -57,7 +59,9 @@ fn unescape_unquoted(s: &str) -> String {
                     out.push(n);
                 }
             }
-        } else { out.push(c) }
+        } else {
+            out.push(c)
+        }
     }
     out
 }

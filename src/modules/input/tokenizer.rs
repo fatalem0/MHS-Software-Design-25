@@ -12,13 +12,22 @@ impl Tokenizer {
         while let Some(c) = chars.next() {
             match (quote, c) {
                 (None, ' ' | '\t') => {
-                    if !buf.is_empty() { out.push(std::mem::take(&mut buf)); }
+                    if !buf.is_empty() {
+                        out.push(std::mem::take(&mut buf));
+                    }
                 }
-                (None, '\'' | '"') => { quote = Some(c); buf.push(c); }
-                (Some(q), ch) if ch == q => { buf.push(ch); quote = None; }
+                (None, '\'' | '"') => {
+                    quote = Some(c);
+                    buf.push(c);
+                }
+                (Some(q), ch) if ch == q => {
+                    buf.push(ch);
+                    quote = None;
+                }
                 (_, '\\') => {
                     if let Some(n) = chars.next() {
-                        buf.push('\\'); buf.push(n);
+                        buf.push('\\');
+                        buf.push(n);
                     } else {
                         buf.push('\\');
                     }
@@ -29,7 +38,9 @@ impl Tokenizer {
         if quote.is_some() {
             return Err(CliError::Quote("unclosed quote".into()));
         }
-        if !buf.is_empty() { out.push(buf); }
+        if !buf.is_empty() {
+            out.push(buf);
+        }
         Ok(out)
     }
 }

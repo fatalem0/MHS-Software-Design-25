@@ -21,7 +21,10 @@ impl Default for Expander {
 
 impl Expander {
     pub fn expand_tokens(&self, env: &Environment, tokens: Vec<Token>) -> Result<Vec<String>> {
-        tokens.into_iter().map(|t| self.expand_token(env, t)).collect()
+        tokens
+            .into_iter()
+            .map(|t| self.expand_token(env, t))
+            .collect()
     }
 
     fn expand_token(&self, env: &Environment, token: Token) -> Result<String> {
@@ -51,12 +54,17 @@ impl Expander {
         }
 
         // 2) Подстановки $VAR и ${VAR}
-        let step = self.re_braced.replace_all(&protected, |caps: &regex::Captures| {
-            env.get(&caps[1]).unwrap_or("").to_string()
-        });
-        let step = self.re_simple.replace_all(&step, |caps: &regex::Captures| {
-            env.get(&caps[1]).unwrap_or("").to_string()
-        }).into_owned();
+        let step = self
+            .re_braced
+            .replace_all(&protected, |caps: &regex::Captures| {
+                env.get(&caps[1]).unwrap_or("").to_string()
+            });
+        let step = self
+            .re_simple
+            .replace_all(&step, |caps: &regex::Captures| {
+                env.get(&caps[1]).unwrap_or("").to_string()
+            })
+            .into_owned();
 
         // 3) Вернём защищённые '$'
         step.chars().map(|c| if c == S { '$' } else { c }).collect()

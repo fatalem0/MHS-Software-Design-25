@@ -8,6 +8,12 @@ pub struct Command {
 }
 impl Command {
     pub fn new<N: Into<String>>(name: N, args: Vec<String>) -> Self {
-        Self { name: name.into(), args, stdin: None, stdout: None, append_stdout: false }
+        Self {
+            name: name.into(),
+            args,
+            stdin: None,
+            stdout: None,
+            append_stdout: false,
+        }
     }
 }

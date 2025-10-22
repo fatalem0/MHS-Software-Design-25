@@ -1,9 +1,9 @@
 // Integration tests
-use std::collections::HashMap;
 use pretty_assertions::assert_eq;
+use std::collections::HashMap;
 
-use cli_rust::modules::input::{environment::Environment, input_processor::InputProcessorBuilder};
 use cli_rust::modules::input::errors::CliError;
+use cli_rust::modules::input::{environment::Environment, input_processor::InputProcessorBuilder};
 
 #[test]
 fn env_get_set() {
@@ -22,11 +22,22 @@ fn tokenization_and_quotes_and_expand() {
     let env = Environment::with_vars(vars);
     let ip = InputProcessorBuilder::new(env).build();
 
-    let cmds = ip.process(r#"echo "hi $NAME" '$NAME' world \\ \$X > out.txt"#).unwrap();
+    let cmds = ip
+        .process(r#"echo "hi $NAME" '$NAME' world \\ \$X > out.txt"#)
+        .unwrap();
     assert_eq!(cmds.len(), 1);
     let c0 = &cmds[0];
     assert_eq!(c0.name, "echo");
-    assert_eq!(c0.args, vec!["hi Bob".to_string(), "$NAME".to_string(), "world".to_string(), "\\".to_string(), "$X".to_string()]);
+    assert_eq!(
+        c0.args,
+        vec![
+            "hi Bob".to_string(),
+            "$NAME".to_string(),
+            "world".to_string(),
+            "\\".to_string(),
+            "$X".to_string()
+        ]
+    );
     assert_eq!(c0.stdout.as_deref(), Some("out.txt"));
     assert!(!c0.append_stdout);
 }
@@ -125,7 +136,6 @@ fn print_redirect_out() {
 
 #[test]
 fn print_redirect_in_and_append_with_pipe() {
-
     // Вход < и апенд >> после пайпа
     let env = Environment::new();
     let line = r#"grep foo < in.txt | sort >> out.log"#;
@@ -134,7 +144,6 @@ fn print_redirect_in_and_append_with_pipe() {
 
 #[test]
 fn print_multiple_commands_and_redirects() {
-
     // Несколько команд в пайплайне, редирект только у последней
     let env = Environment::new();
     let line = r#"cat data.csv | cut -d, -f2 | uniq -c > counts.txt"#;
@@ -156,13 +165,10 @@ fn print_literal_dollar_no_expand() {
 
 #[test]
 fn print_overwrite_vs_append() {
-
     // Демонстрация различия > (перезапись) и >> (аппенд)
     // (наш парсер хранит только флаг append и имя файла)
     let env = Environment::new();
 
     dump_commands("overwrite >", r#"echo one > file.txt"#, env.clone());
-    dump_commands("append >>",   r#"echo two >> file.txt"#, env);
+    dump_commands("append >>", r#"echo two >> file.txt"#, env);
 }
-
-

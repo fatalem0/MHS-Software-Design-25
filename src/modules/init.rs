@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
+
 #[derive(Debug, Clone)]
 pub struct Init {
     /// Env variables
@@ -65,6 +67,11 @@ impl Default for Init {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub fn build_input_processor() -> InputProcessor {
+    let env = Environment::capture_current(); // реальные переменные окружения
+    InputProcessorBuilder::new(env).build()
 }
 
 #[cfg(test)]
