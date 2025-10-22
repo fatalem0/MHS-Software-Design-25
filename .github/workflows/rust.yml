@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache cargo registry, git and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Set up Rust (stable) - install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          # profile: default   # try default if you previously used minimal
+
+      - name: Ensure rustfmt and clippy are installed
+        run: |
+          # Try adding components explicitly. This often succeeds where the "components:" param fails.
+          rustup component add rustfmt --toolchain stable || true
+          rustup component add clippy --toolchain stable || true
+          echo "Installed components:"
+          rustup component list --toolchain stable --installed || true
+          rustc --version
+          rustup show
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run tests
+        run: cargo test --verbose
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy (deny warnings)
+        run: cargo clippy --all-targets -- -D warnings
