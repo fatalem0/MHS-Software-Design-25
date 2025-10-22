@@ -69,6 +69,11 @@ impl Default for Init {
     }
 }
 
+pub fn build_input_processor() -> InputProcessor {
+    let env = Environment::capture_current(); // реальные переменные окружения
+    InputProcessorBuilder::new(env).build()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,9 +102,4 @@ mod tests {
         init.set_env("NEW_VAR".to_string(), "new_value".to_string());
         assert_eq!(init.get_env("NEW_VAR"), Some(&"new_value".to_string()));
     }
-}
-
-pub fn build_input_processor() -> InputProcessor {
-    let env = Environment::capture_current(); // реальные переменные окружения
-    InputProcessorBuilder::new(env).build()
 }

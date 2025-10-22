@@ -79,28 +79,6 @@ impl InputProcessor {
     }
 }
 
-fn split_pipes(line: &str) -> Vec<&str> {
-    let mut out = Vec::new();
-    let mut start = 0usize;
-    let mut quote: Option<char> = None;
-    let bytes = line.as_bytes();
-    let mut i = 0usize;
-    while i < bytes.len() {
-        let c = bytes[i] as char;
-        if quote.is_none() && (c == '\'' || c == '"') {
-            quote = Some(c);
-        } else if quote == Some(c) {
-            quote = None;
-        } else if quote.is_none() && c == '|' {
-            out.push(line[start..].trim());
-            start = i + 1;
-        }
-        i += 1;
-    }
-    out.push(&line[start..].trim());
-    out
-}
-
 /// Делит уже токенизированную строку на команды по токену "|".
 /// Токен "|" будет отдельным элементом только если он вне кавычек.
 fn split_on_pipes_tokens(raw: &[String]) -> Vec<Vec<String>> {
