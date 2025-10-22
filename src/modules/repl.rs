@@ -105,9 +105,10 @@ impl Repl {
         if let Some(eq_pos) = input.find('=') {
             let name_part = &input[..eq_pos];
             // Check if name part is a valid identifier (starts with letter/underscore, contains alphanumeric/underscore)
-            if !name_part.is_empty() 
-                && name_part.chars().all(|c| c.is_alphanumeric() || c == '_') 
-                && (name_part.chars().next().unwrap().is_alphabetic() || name_part.starts_with('_')) {
+            if !name_part.is_empty()
+                && name_part.chars().all(|c| c.is_alphanumeric() || c == '_')
+                && (name_part.chars().next().unwrap().is_alphabetic() || name_part.starts_with('_'))
+            {
                 return true;
             }
         }
@@ -118,7 +119,7 @@ impl Repl {
         if let Some(eq_pos) = input.find('=') {
             let name = &input[..eq_pos];
             let value = &input[eq_pos + 1..];
-            
+
             // Update environment in input processor
             if let Some(env) = self.input_processor.get_environment_mut() {
                 env.set(name.to_string(), value.to_string());
@@ -126,7 +127,7 @@ impl Repl {
             } else {
                 eprintln!("Failed to set environment variable");
             }
-            
+
             // Also update runner's environment
             self.runner.set_env_var(name.to_string(), value.to_string());
         }

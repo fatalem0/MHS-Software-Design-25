@@ -55,7 +55,7 @@ mod tests {
             .with_stdin("input")
             .with_stdout("output.txt")
             .with_append_stdout(true);
-        
+
         assert_eq!(cmd.name, "test");
         assert_eq!(cmd.args, vec!["arg1"]);
         assert_eq!(cmd.stdin.unwrap(), "input");
