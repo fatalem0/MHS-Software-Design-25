@@ -8,5 +8,5 @@ pub mod token;
 pub mod tokenizer;
 
 pub use environment::Environment;
-pub use token::{Token, TokenMode};
 pub use input_processor::{InputProcessor, InputProcessorBuilder};
+pub use token::{Token, TokenMode};

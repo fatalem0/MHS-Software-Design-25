@@ -1,13 +1,19 @@
 use crate::modules::input::{
-    command::Command, environment::Environment, errors::{CliError, Result},
-    expander::Expander, quote_handler::QuoteHandler, tokenizer::Tokenizer,
+    command::Command,
+    environment::Environment,
+    errors::{CliError, Result},
+    expander::Expander,
+    quote_handler::QuoteHandler,
+    tokenizer::Tokenizer,
 };
 
 pub struct InputProcessorBuilder {
     env: Environment,
 }
 impl InputProcessorBuilder {
-    pub fn new(env: Environment) -> Self { Self { env } }
+    pub fn new(env: Environment) -> Self {
+        Self { env }
+    }
     pub fn build(self) -> InputProcessor {
         InputProcessor {
             env: self.env,
@@ -40,9 +46,10 @@ impl InputProcessor {
         Ok(cmds)
     }
 
-
     fn produce_command(&self, mut pieces: Vec<String>) -> Result<Command> {
-        if pieces.is_empty() { return Err(CliError::EmptyCommand); }
+        if pieces.is_empty() {
+            return Err(CliError::EmptyCommand);
+        }
         let name = pieces.remove(0);
         let mut args = Vec::<String>::new();
         let mut stdin = None;
@@ -53,8 +60,14 @@ impl InputProcessor {
         while let Some(p) = it.next() {
             match p.as_str() {
                 "<" => stdin = it.next(),
-                ">" => { append_stdout = false; stdout = it.next();},
-                ">>" => { append_stdout = true; stdout = it.next();},
+                ">" => {
+                    append_stdout = false;
+                    stdout = it.next();
+                }
+                ">>" => {
+                    append_stdout = true;
+                    stdout = it.next();
+                }
                 _ => args.push(p),
             }
         }

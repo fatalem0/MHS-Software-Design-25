@@ -1,6 +1,6 @@
 use crate::modules::init::Init;
-use crate::modules::runner::{Command, Runner};
 use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
+use crate::modules::runner::{Command, Runner};
 
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -18,7 +18,6 @@ impl Repl {
         let bin_path = init.bin_path.clone();
         let _env_vars = init.env_vars().clone();
         let runner = Runner::new(bin_path.clone(), _env_vars.clone());
-
 
         let env = Environment::with_vars(_env_vars.clone());
         let input_processor = InputProcessorBuilder::new(env).build();

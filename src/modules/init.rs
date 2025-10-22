@@ -99,7 +99,6 @@ mod tests {
     }
 }
 
-
 pub fn build_input_processor() -> InputProcessor {
     let env = Environment::capture_current(); // реальные переменные окружения
     InputProcessorBuilder::new(env).build()
