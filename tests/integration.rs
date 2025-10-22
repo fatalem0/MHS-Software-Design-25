@@ -2,8 +2,8 @@
 use std::collections::HashMap;
 use pretty_assertions::assert_eq;
 
-use cli_core::{Environment, InputProcessorBuilder};
-use cli_core::errors::CliError;
+use cli_rust::modules::input::{environment::Environment, input_processor::InputProcessorBuilder};
+use cli_rust::modules::input::errors::CliError;
 
 #[test]
 fn env_get_set() {
@@ -67,7 +67,7 @@ fn errors_unclosed_quote() {
 
 #[test]
 fn print_parsed_commands() {
-    use cli_core::{Environment, InputProcessorBuilder};
+    // use cli_rust::{Environment, InputProcessorBuilder};
 
     // Можно менять эту строку для проверки разных сценариев
     let line = r#"echo "Hello $USER" | grep Hello > result.txt"#;
@@ -92,8 +92,7 @@ fn print_parsed_commands() {
 }
 
 // Вспомогательный принтер, чтобы не дублировать код в тестах
-fn dump_commands(title: &str, line: &str, env: cli_core::Environment) {
-    use cli_core::InputProcessorBuilder;
+fn dump_commands(title: &str, line: &str, env: Environment) {
     let ip = InputProcessorBuilder::new(env).build();
     let cmds = ip.process(line).expect("failed to parse");
     println!("\n=== {title} ===\nINPUT: {line}\n");
@@ -114,7 +113,6 @@ fn dump_commands(title: &str, line: &str, env: cli_core::Environment) {
 #[test]
 fn print_redirect_out() {
     use std::collections::HashMap;
-    use cli_core::Environment;
 
     // Простая команда с выводом в файл
     let mut vars = HashMap::new();
@@ -127,7 +125,6 @@ fn print_redirect_out() {
 
 #[test]
 fn print_redirect_in_and_append_with_pipe() {
-    use cli_core::Environment;
 
     // Вход < и апенд >> после пайпа
     let env = Environment::new();
@@ -137,7 +134,6 @@ fn print_redirect_in_and_append_with_pipe() {
 
 #[test]
 fn print_multiple_commands_and_redirects() {
-    use cli_core::Environment;
 
     // Несколько команд в пайплайне, редирект только у последней
     let env = Environment::new();
@@ -148,7 +144,6 @@ fn print_multiple_commands_and_redirects() {
 #[test]
 fn print_literal_dollar_no_expand() {
     use std::collections::HashMap;
-    use cli_core::Environment;
 
     // Показываем, что \$ не разворачивается
     let mut vars = HashMap::new();
@@ -161,7 +156,6 @@ fn print_literal_dollar_no_expand() {
 
 #[test]
 fn print_overwrite_vs_append() {
-    use cli_core::Environment;
 
     // Демонстрация различия > (перезапись) и >> (аппенд)
     // (наш парсер хранит только флаг append и имя файла)

@@ -1,8 +1,8 @@
 use regex::Regex;
 
-use crate::environment::Environment;
-use crate::errors::Result;
-use crate::token::{Token, TokenMode};
+use crate::modules::input::environment::Environment;
+use crate::modules::input::errors::Result;
+use crate::modules::input::token::{Token, TokenMode};
 
 #[derive(Clone)]
 pub struct Expander {

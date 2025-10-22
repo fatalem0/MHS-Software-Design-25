@@ -1,4 +1,4 @@
-use crate::{
+use crate::modules::input::{
     command::Command, environment::Environment, errors::{CliError, Result},
     expander::Expander, quote_handler::QuoteHandler, tokenizer::Tokenizer,
 };

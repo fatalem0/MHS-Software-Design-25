@@ -2,3 +2,4 @@
 pub mod init;
 pub mod repl;
 pub mod runner;
+pub mod input;

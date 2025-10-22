@@ -1,5 +1,5 @@
-use crate::errors::{CliError, Result};
-use crate::token::{Token, TokenMode};
+use crate::modules::input::errors::{CliError, Result};
+use crate::modules::input::token::{Token, TokenMode};
 
 pub struct QuoteHandler;
 

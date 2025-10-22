@@ -1,4 +1,4 @@
-use crate::errors::{CliError, Result};
+use crate::modules::input::errors::{CliError, Result};
 
 pub struct Tokenizer;
 
