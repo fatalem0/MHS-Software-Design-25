@@ -1,11 +1,19 @@
 Project of a simple CLI on Rust
 
-Build instructions:
+## Supported functionality:
+- can run own implementations of `wc`, `echo`, `cat`, `pwd`
+- can run other commands if there is no own implementation
+- `exit`, `help`
+- setting environment variables
+- redirecting `stdin`, `stdout`, `stderr`
+- substition of environment variables in weak quotes and in cases without qoutes
+
+## Build and run instructions:
 - install Rust toolchain (https://rustup.rs/)
 - In the root of the project execute `cargo build -r`
 - Run the executable by `./target/release/cli-shell`
 
-Usage examples:
+## Usage examples:
 ```
 >echo "Hello, world!"
 Hello, world!
