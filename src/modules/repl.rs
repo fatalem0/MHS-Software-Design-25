@@ -1,26 +1,92 @@
 use crate::modules::init::Init;
+use crate::modules::runner::{Command, Runner};
 use std::collections::HashMap;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 pub struct Repl {
     bin_path: PathBuf,
-    env_vars: HashMap<String, String>,
+    _env_vars: HashMap<String, String>,
+    runner: Runner,
 }
 
 impl Repl {
     pub fn new(init: &Init) -> Self {
         let bin_path = init.bin_path.clone();
+        let _env_vars = init.env_vars().clone();
+        let runner = Runner::new(bin_path.clone(), _env_vars.clone());
+
         Repl {
             bin_path,
-            env_vars: init.env_vars().clone(),
+            _env_vars,
+            runner,
         }
     }
 
     pub fn run(&self) {
-        println!(
-            "REPL started with bin path: {:?} and env vars: {:?}",
-            self.bin_path, self.env_vars
-        );
+        println!("CLI Shell started with bin path: {:?}", self.bin_path);
+        println!("Type 'exit' to quit or 'help' for available commands.");
+
+        loop {
+            print!("$ ");
+            io::stdout().flush().unwrap();
+
+            let mut input = String::new();
+            match io::stdin().read_line(&mut input) {
+                Ok(_) => {
+                    let input = input.trim();
+
+                    if input.is_empty() {
+                        continue;
+                    }
+
+                    if input == "exit" {
+                        println!("Goodbye!");
+                        break;
+                    }
+
+                    if input == "help" {
+                        self.show_help();
+                        continue;
+                    }
+
+                    // For now, create a simple command from the input
+                    // In the future, this will be replaced with proper parsing and tokenization
+                    let parts: Vec<String> =
+                        input.split_whitespace().map(|s| s.to_string()).collect();
+
+                    if !parts.is_empty() {
+                        let command = Command::new(parts[0].clone(), parts[1..].to_vec());
+                        self.execute_command(command);
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error reading input: {}", error);
+                    break;
+                }
+            }
+        }
+    }
+
+    fn execute_command(&self, command: Command) {
+        match self.runner.execute(command) {
+            Ok(output) => {
+                if !output.trim().is_empty() {
+                    print!("{}", output);
+                }
+            }
+            Err(error) => {
+                eprintln!("Error executing command: {}", error);
+            }
+        }
+    }
+
+    fn show_help(&self) {
+        println!("Available commands:");
+        println!("  echo [args...]  - Print arguments to stdout");
+        println!("  help           - Show this help message");
+        println!("  exit           - Exit the shell");
+        println!("  [command]      - Execute any system command or custom implementation");
     }
 }
 
