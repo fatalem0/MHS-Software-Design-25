@@ -141,8 +141,6 @@ impl Runner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
-    use std::fs;
 
     #[test]
     fn test_command_creation() {
