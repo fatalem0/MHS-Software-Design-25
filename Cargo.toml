@@ -17,6 +17,7 @@ name = "echo"
 path = "src/bin/echo.rs"
 
 [dependencies]
+env = "1.0.1"
 pretty_assertions = "1.4.1"
 regex = "1.12.2"
 thiserror = "2.0.17"
