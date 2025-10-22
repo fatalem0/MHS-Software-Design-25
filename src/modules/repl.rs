@@ -4,13 +4,13 @@ use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
 use crate::modules::runner::Runner;
 
 use std::collections::HashMap;
+
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
 pub struct Repl {
     bin_path: PathBuf,
-    _env_vars: HashMap<String, String>,
     runner: Runner,
     input_processor: InputProcessor,
 }
@@ -18,21 +18,19 @@ pub struct Repl {
 impl Repl {
     pub fn new(init: &Init) -> Self {
         let bin_path = init.bin_path.clone();
-        let _env_vars = init.env_vars().clone();
-        let runner = Runner::new(bin_path.clone(), _env_vars.clone());
+        let runner = Runner::new(bin_path.clone());
 
-        let env: Environment = Environment::with_vars(_env_vars.clone());
+        let env: Environment = Environment::with_vars(init.env_vars().clone());
         let input_processor = InputProcessorBuilder::new(env).build();
 
         Repl {
             bin_path,
-            _env_vars,
             runner,
             input_processor,
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, init: &mut Init) {
         println!("CLI Shell started with bin path: {:?}", self.bin_path);
         println!("Type 'exit' to quit or 'help' for available commands.");
 
@@ -61,7 +59,7 @@ impl Repl {
 
                     // Check if it's a variable assignment (NAME=VALUE)
                     if self.is_variable_assignment(input) {
-                        self.handle_variable_assignment(input);
+                        self.handle_variable_assignment(input, init);
                         continue;
                     }
 
@@ -114,7 +112,7 @@ impl Repl {
                                         .with_append_stderr(pc.append_stderr);
                                 }
 
-                                self.execute_command(cmd);
+                                self.execute_command(cmd, init.env_vars());
                             }
                             if should_break {
                                 break;
@@ -131,8 +129,8 @@ impl Repl {
         }
     }
 
-    fn execute_command(&self, command: Command) {
-        match self.runner.execute(command) {
+    fn execute_command(&self, command: Command, env_vars: &HashMap<String, String>) {
+        match self.runner.execute(command, env_vars) {
             Ok(output) => {
                 if !output.trim().is_empty() {
                     print!("{}", output);
@@ -159,7 +157,7 @@ impl Repl {
         false
     }
 
-    fn handle_variable_assignment(&mut self, input: &str) {
+    fn handle_variable_assignment(&mut self, input: &str, init: &mut Init) {
         if let Some(eq_pos) = input.find('=') {
             let name = &input[..eq_pos];
             let value = &input[eq_pos + 1..];
@@ -172,8 +170,8 @@ impl Repl {
                 eprintln!("Failed to set environment variable");
             }
 
-            // Also update runner's environment
-            self.runner.set_env_var(name.to_string(), value.to_string());
+            // Also update init's environment (single source of truth)
+            init.set_env(name.to_string(), value.to_string());
         }
     }
 
@@ -218,7 +216,7 @@ mod tests {
         let repl = Repl::new(&init);
 
         assert_eq!(repl.bin_path, init.bin_path);
-        assert_eq!(repl._env_vars, init.env_vars().clone());
+        // Environment variables are now managed by Init, not duplicated in Repl
     }
 
     #[test]
@@ -322,19 +320,18 @@ mod tests {
 
     #[test]
     fn test_environment_variable_handling() {
-        let init = Init::new();
-        let mut repl = Repl::new(&init);
+        let mut init = Init::new();
+        let _repl = Repl::new(&init);
 
-        // Test setting environment variable through runner
-        repl.runner
-            .set_env_var("TEST_VAR".to_string(), "test_value".to_string());
+        // Test setting environment variable through init (single source of truth)
+        init.set_env("TEST_VAR".to_string(), "test_value".to_string());
 
         // Test getting environment variable
-        let value = repl.runner.get_env_var("TEST_VAR");
+        let value = init.get_env("TEST_VAR");
         assert_eq!(value, Some(&"test_value".to_string()));
 
         // Test non-existent variable
-        let no_value = repl.runner.get_env_var("NONEXISTENT_VAR");
+        let no_value = init.get_env("NONEXISTENT_VAR");
         assert_eq!(no_value, None);
     }
 }

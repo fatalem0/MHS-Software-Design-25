@@ -13,7 +13,7 @@ use std::{env, fs};
 fn simulate_repl_command(input: &str, test_dir: &Path) -> Result<String, String> {
     let init = Init::new();
     let env_vars = init.env_vars().clone();
-    let runner = Runner::new(init.bin_path.clone(), env_vars.clone());
+    let runner = Runner::new(init.bin_path.clone());
 
     let env = Environment::with_vars(env_vars.clone());
     let input_processor = InputProcessorBuilder::new(env).build();
@@ -60,7 +60,7 @@ fn simulate_repl_command(input: &str, test_dir: &Path) -> Result<String, String>
                 }
 
                 // Execute command
-                match runner.execute(cmd) {
+                match runner.execute(cmd, &env_vars) {
                     Ok(output) => {
                         if !output.trim().is_empty() {
                             final_output.push_str(&output);
