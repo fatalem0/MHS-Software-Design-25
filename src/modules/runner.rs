@@ -44,7 +44,7 @@ impl Runner {
         command: &Command,
         binary_path: &PathBuf,
     ) -> io::Result<String> {
-        eprintln!("Executing custom binary: {:?}", binary_path);
+        // eprintln!("Executing custom binary: {:?}", binary_path);
         let mut cmd = StdCommand::new(binary_path);
         cmd.args(&command.args);
 
@@ -75,7 +75,24 @@ impl Runner {
             cmd.stdout(Stdio::piped());
         }
 
-        cmd.stderr(Stdio::piped());
+        // Handle stderr redirection
+        if let Some(stderr_file) = &command.stderr {
+            let file = if command.append_stderr {
+                OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(stderr_file)?
+            } else {
+                OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .open(stderr_file)?
+            };
+            cmd.stderr(Stdio::from(file));
+        } else {
+            cmd.stderr(Stdio::piped());
+        }
 
         let mut child = cmd.spawn()?;
 
@@ -97,8 +114,17 @@ impl Runner {
                 Ok(String::from_utf8_lossy(&output.stdout).to_string())
             }
         } else {
-            let error = String::from_utf8_lossy(&output.stderr);
-            Err(io::Error::other(format!("Command failed: {}", error)))
+            // If stderr is redirected, don't include it in error message (it's in the file)
+            let error = if command.stderr.is_some() {
+                format!(
+                    "Command failed with exit code: {}",
+                    output.status.code().unwrap_or(-1)
+                )
+            } else {
+                let stderr_str = String::from_utf8_lossy(&output.stderr);
+                format!("Command failed: {}", stderr_str)
+            };
+            Err(io::Error::other(error))
         }
     }
 
@@ -134,7 +160,24 @@ impl Runner {
             cmd.stdout(Stdio::piped());
         }
 
-        cmd.stderr(Stdio::piped());
+        // Handle stderr redirection
+        if let Some(stderr_file) = &command.stderr {
+            let file = if command.append_stderr {
+                OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(stderr_file)?
+            } else {
+                OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .open(stderr_file)?
+            };
+            cmd.stderr(Stdio::from(file));
+        } else {
+            cmd.stderr(Stdio::piped());
+        }
 
         let mut child = cmd.spawn().map_err(|e| {
             io::Error::new(
@@ -161,8 +204,17 @@ impl Runner {
                 Ok(String::from_utf8_lossy(&output.stdout).to_string())
             }
         } else {
-            let error = String::from_utf8_lossy(&output.stderr);
-            Err(io::Error::other(format!("Command failed: {}", error)))
+            // If stderr is redirected, don't include it in error message (it's in the file)
+            let error = if command.stderr.is_some() {
+                format!(
+                    "Command failed with exit code: {}",
+                    output.status.code().unwrap_or(-1)
+                )
+            } else {
+                let stderr_str = String::from_utf8_lossy(&output.stderr);
+                format!("Command failed: {}", stderr_str)
+            };
+            Err(io::Error::other(error))
         }
     }
 }

@@ -6,6 +6,8 @@ pub struct Command {
     pub stdin: Option<String>,
     pub stdout: Option<String>,
     pub append_stdout: bool,
+    pub stderr: Option<String>,
+    pub append_stderr: bool,
 }
 
 impl Command {
@@ -16,6 +18,8 @@ impl Command {
             stdin: None,
             stdout: None,
             append_stdout: false,
+            stderr: None,
+            append_stderr: false,
         }
     }
 
@@ -31,6 +35,16 @@ impl Command {
 
     pub fn with_append_stdout(mut self, append: bool) -> Self {
         self.append_stdout = append;
+        self
+    }
+
+    pub fn with_stderr<S: Into<String>>(mut self, stderr: S) -> Self {
+        self.stderr = Some(stderr.into());
+        self
+    }
+
+    pub fn with_append_stderr(mut self, append: bool) -> Self {
+        self.append_stderr = append;
         self
     }
 }
@@ -61,5 +75,42 @@ mod tests {
         assert_eq!(cmd.stdin.unwrap(), "input");
         assert_eq!(cmd.stdout.unwrap(), "output.txt");
         assert!(cmd.append_stdout);
+        assert!(cmd.stderr.is_none());
+        assert!(!cmd.append_stderr);
+    }
+
+    #[test]
+    fn test_command_with_stderr() {
+        let cmd = Command::new("test", vec!["arg".to_string()]).with_stderr("errors.log");
+
+        assert_eq!(cmd.name, "test");
+        assert_eq!(cmd.stderr.unwrap(), "errors.log");
+        assert!(!cmd.append_stderr);
+    }
+
+    #[test]
+    fn test_command_with_stderr_append() {
+        let cmd = Command::new("test", vec![])
+            .with_stderr("errors.log")
+            .with_append_stderr(true);
+
+        assert_eq!(cmd.stderr.unwrap(), "errors.log");
+        assert!(cmd.append_stderr);
+    }
+
+    #[test]
+    fn test_command_full_redirection() {
+        let cmd = Command::new("test", vec!["arg".to_string()])
+            .with_stdin("input.txt")
+            .with_stdout("output.txt")
+            .with_stderr("error.txt")
+            .with_append_stdout(false)
+            .with_append_stderr(true);
+
+        assert_eq!(cmd.stdin.unwrap(), "input.txt");
+        assert_eq!(cmd.stdout.unwrap(), "output.txt");
+        assert_eq!(cmd.stderr.unwrap(), "error.txt");
+        assert!(!cmd.append_stdout);
+        assert!(cmd.append_stderr);
     }
 }

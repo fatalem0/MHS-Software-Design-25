@@ -108,6 +108,11 @@ impl Repl {
                                         .with_stdout(stdout)
                                         .with_append_stdout(pc.append_stdout);
                                 }
+                                if let Some(stderr) = pc.stderr {
+                                    cmd = cmd
+                                        .with_stderr(stderr)
+                                        .with_append_stderr(pc.append_stderr);
+                                }
 
                                 self.execute_command(cmd);
                             }

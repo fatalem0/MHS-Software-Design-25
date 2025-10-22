@@ -65,28 +65,92 @@ impl InputProcessor {
         let mut stdin = None;
         let mut stdout = None;
         let mut append_stdout = false;
+        let mut stderr = None;
+        let mut append_stderr = false;
 
         let mut it = pieces.into_iter().peekable();
         while let Some(p) = it.next() {
             match p.as_str() {
-                "<" => stdin = it.next(),
-                ">" => {
+                "<" | "0<" => stdin = it.next(),
+                ">" | "1>" => {
                     append_stdout = false;
                     stdout = it.next();
                 }
-                ">>" => {
+                ">>" | "1>>" => {
                     append_stdout = true;
                     stdout = it.next();
                 }
-                _ => args.push(p),
+                "2>" => {
+                    append_stderr = false;
+                    stderr = it.next();
+                }
+                "2>>" => {
+                    append_stderr = true;
+                    stderr = it.next();
+                }
+                _ => {
+                    // Check for patterns like "3>", "4>>", etc.
+                    if let Some(fd_redirect) = parse_fd_redirect(&p) {
+                        let target_file = it.next();
+                        match fd_redirect {
+                            (0, false) => stdin = target_file, // "0>"  (unusual but possible)
+                            (1, false) => {
+                                append_stdout = false;
+                                stdout = target_file;
+                            } // "1>"
+                            (1, true) => {
+                                append_stdout = true;
+                                stdout = target_file;
+                            } // "1>>"
+                            (2, false) => {
+                                append_stderr = false;
+                                stderr = target_file;
+                            } // "2>"
+                            (2, true) => {
+                                append_stderr = true;
+                                stderr = target_file;
+                            } // "2>>"
+                            _ => {
+                                // For fd >= 3, we could extend Command struct to support them
+                                // For now, ignore or add to args
+                                args.push(p);
+                                if let Some(file) = target_file {
+                                    args.push(file);
+                                }
+                            }
+                        }
+                    } else {
+                        args.push(p);
+                    }
+                }
             }
         }
         let mut cmd = Command::new(name, args);
         cmd.stdin = stdin;
         cmd.stdout = stdout;
         cmd.append_stdout = append_stdout;
+        cmd.stderr = stderr;
+        cmd.append_stderr = append_stderr;
         Ok(cmd)
     }
+}
+
+/// Parse file descriptor redirection patterns like "2>", "3>>", "1>", etc.
+/// Returns Some((fd_number, is_append)) if the string matches a pattern, None otherwise.
+fn parse_fd_redirect(s: &str) -> Option<(u32, bool)> {
+    if s.ends_with(">>") {
+        if let Some(fd_part) = s.strip_suffix(">>") {
+            if let Ok(fd) = fd_part.parse::<u32>() {
+                return Some((fd, true)); // append mode
+            }
+        }
+    } else if let Some(fd_part) = s.strip_suffix('>') {
+        // Pattern like "2>" or "1>"
+        if let Ok(fd) = fd_part.parse::<u32>() {
+            return Some((fd, false)); // overwrite mode
+        }
+    }
+    None
 }
 
 /// Делит уже токенизированную строку на команды по токену "|".
