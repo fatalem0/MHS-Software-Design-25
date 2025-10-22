@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::modules::input::environment::Environment;
+use crate::modules::environment::Environment;
 use crate::modules::input::errors::Result;
 use crate::modules::input::token::{Token, TokenMode};
 
@@ -122,7 +122,7 @@ impl Expander {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::modules::input::environment::Environment;
+    use crate::modules::environment::Environment;
     use crate::modules::input::token::{Token, TokenMode};
 
     #[test]

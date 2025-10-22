@@ -1,9 +1,8 @@
 use crate::modules::command::Command;
+use crate::modules::environment::Environment;
 use crate::modules::init::Init;
-use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
+use crate::modules::input::{InputProcessor, InputProcessorBuilder};
 use crate::modules::runner::Runner;
-
-use std::collections::HashMap;
 
 use std::fs;
 use std::io::{self, Write};
@@ -20,8 +19,7 @@ impl Repl {
         let bin_path = init.bin_path.clone();
         let runner = Runner::new(bin_path.clone());
 
-        let env: Environment = Environment::with_vars(init.env_vars().clone());
-        let input_processor = InputProcessorBuilder::new(env).build();
+        let input_processor = InputProcessorBuilder::new().build();
 
         Repl {
             bin_path,
@@ -64,7 +62,7 @@ impl Repl {
                     }
 
                     // Process as command
-                    match self.input_processor.process(input) {
+                    match self.input_processor.process(input, init.env_vars()) {
                         Ok(parsed_cmds) => {
                             // If any parsed command expands to a builtin like `exit` or `help`,
                             // handle it here (after expansion). This allows constructs like
@@ -129,7 +127,7 @@ impl Repl {
         }
     }
 
-    fn execute_command(&self, command: Command, env_vars: &HashMap<String, String>) {
+    fn execute_command(&self, command: Command, env_vars: &Environment) {
         match self.runner.execute(command, env_vars) {
             Ok(output) => {
                 if !output.trim().is_empty() {
@@ -162,16 +160,9 @@ impl Repl {
             let name = &input[..eq_pos];
             let value = &input[eq_pos + 1..];
 
-            // Update environment in input processor
-            if let Some(env) = self.input_processor.get_environment_mut() {
-                env.set(name.to_string(), value.to_string());
-                println!("Set {}={}", name, value);
-            } else {
-                eprintln!("Failed to set environment variable");
-            }
-
-            // Also update init's environment (single source of truth)
+            // Update init's environment (single source of truth)
             init.set_env(name.to_string(), value.to_string());
+            println!("Set {}={}", name, value);
         }
     }
 
@@ -328,7 +319,7 @@ mod tests {
 
         // Test getting environment variable
         let value = init.get_env("TEST_VAR");
-        assert_eq!(value, Some(&"test_value".to_string()));
+        assert_eq!(value, Some("test_value"));
 
         // Test non-existent variable
         let no_value = init.get_env("NONEXISTENT_VAR");

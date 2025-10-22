@@ -1,10 +1,7 @@
 // End-to-end REPL functionality tests
 // Tests: complete workflow from input parsing through command execution with real file I/O
 use cli_rust::modules::{
-    command::Command,
-    init::Init,
-    input::{Environment, InputProcessorBuilder},
-    runner::Runner,
+    command::Command, init::Init, input::InputProcessorBuilder, runner::Runner,
 };
 use std::path::Path;
 use std::{env, fs};
@@ -15,11 +12,10 @@ fn simulate_repl_command(input: &str, test_dir: &Path) -> Result<String, String>
     let env_vars = init.env_vars().clone();
     let runner = Runner::new(init.bin_path.clone());
 
-    let env = Environment::with_vars(env_vars.clone());
-    let input_processor = InputProcessorBuilder::new(env).build();
+    let input_processor = InputProcessorBuilder::new().build();
 
     // Parse the input
-    match input_processor.process(input) {
+    match input_processor.process(input, &env_vars) {
         Ok(parsed_cmds) => {
             let mut final_output = String::new();
 

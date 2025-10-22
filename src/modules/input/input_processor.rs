@@ -1,62 +1,22 @@
 use crate::modules::input::{
     command::Command,
-    environment::Environment,
     errors::{CliError, Result},
     expander::Expander,
     quote_handler::QuoteHandler,
     tokenizer::Tokenizer,
+    Environment,
 };
 
-pub struct InputProcessorBuilder {
-    env: Environment,
-}
-impl InputProcessorBuilder {
-    pub fn new(env: Environment) -> Self {
-        Self { env }
-    }
-    pub fn build(self) -> InputProcessor {
-        InputProcessor {
-            env: self.env,
-            expander: Expander::default(),
-        }
-    }
-}
+/// CommandProducer is responsible for converting parsed tokens into Command objects
+/// with proper redirection handling (stdin, stdout, stderr).
+pub struct CommandProducer;
 
-#[derive(Clone)]
-pub struct InputProcessor {
-    env: Environment,
-    expander: Expander,
-}
-
-impl InputProcessor {
-    /// Get mutable access to the environment
-    pub fn get_environment_mut(&mut self) -> Option<&mut Environment> {
-        Some(&mut self.env)
-    }
-
-    /// Get read-only access to the environment
-    pub fn get_environment(&self) -> &Environment {
-        &self.env
-    }
-
-    pub fn process(&self, line: &str) -> Result<Vec<Command>> {
-        // 1) Токенизируем всю строку (учитывая кавычки/экраны)
-        let raw = Tokenizer::tokenize(line)?;
-
-        // 2) Делим список токенов по некавычённому токену "|"
-        let parts = split_on_pipes_tokens(&raw);
-
-        // 3) Обрабатываем каждую часть отдельной командой
-        let mut cmds = Vec::with_capacity(parts.len());
-        for raw_part in parts {
-            let tokens = QuoteHandler::handle(&raw_part)?;
-            let pieces = self.expander.expand_tokens(&self.env, tokens)?;
-            cmds.push(self.produce_command(pieces)?);
-        }
-        Ok(cmds)
-    }
-
-    fn produce_command(&self, mut pieces: Vec<String>) -> Result<Command> {
+impl CommandProducer {
+    /// Produces a Command object from tokenized command pieces, handling redirection operators.
+    ///
+    /// This method parses redirection operators like `>`, `>>`, `2>`, `<` etc. and builds
+    /// a Command with appropriate stdin, stdout, and stderr configurations.
+    pub fn produce_command(mut pieces: Vec<String>) -> Result<Command> {
         if pieces.is_empty() {
             return Err(CliError::EmptyCommand);
         }
@@ -132,6 +92,50 @@ impl InputProcessor {
         cmd.stderr = stderr;
         cmd.append_stderr = append_stderr;
         Ok(cmd)
+    }
+}
+
+pub struct InputProcessorBuilder {}
+impl InputProcessorBuilder {
+    pub fn new() -> Self {
+        Self {}
+    }
+    pub fn build(self) -> InputProcessor {
+        InputProcessor {
+            expander: Expander::default(),
+        }
+    }
+}
+
+impl Default for InputProcessorBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// InputProcessor acts as a facade that coordinates tokenization, variable expansion,
+/// and command production to convert input strings into executable commands.
+#[derive(Clone)]
+pub struct InputProcessor {
+    expander: Expander,
+}
+
+impl InputProcessor {
+    pub fn process(&self, line: &str, env_vars: &Environment) -> Result<Vec<Command>> {
+        // 1) Токенизируем всю строку (учитывая кавычки/экраны)
+        let raw = Tokenizer::tokenize(line)?;
+
+        // 2) Делим список токенов по некавычённому токену "|"
+        let parts = split_on_pipes_tokens(&raw);
+
+        // 3) Обрабатываем каждую часть отдельной командой
+        let mut cmds = Vec::with_capacity(parts.len());
+        for raw_part in parts {
+            let tokens = QuoteHandler::handle(&raw_part)?;
+            let pieces = self.expander.expand_tokens(env_vars, tokens)?;
+            cmds.push(CommandProducer::produce_command(pieces)?);
+        }
+        Ok(cmds)
     }
 }
 

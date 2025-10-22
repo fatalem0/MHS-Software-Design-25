@@ -1,5 +1,5 @@
 use crate::modules::command::Command;
-use std::collections::HashMap;
+use crate::modules::environment::Environment;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -17,11 +17,7 @@ impl Runner {
     }
 
     /// Execute a command using custom implementation or system executable
-    pub fn execute(
-        &self,
-        command: Command,
-        env_vars: &HashMap<String, String>,
-    ) -> io::Result<String> {
+    pub fn execute(&self, command: Command, env_vars: &Environment) -> io::Result<String> {
         let custom_binary_path = self.bin_path.join(&command.name);
 
         if custom_binary_path.exists() {
@@ -36,13 +32,13 @@ impl Runner {
         &self,
         command: &Command,
         binary_path: &PathBuf,
-        env_vars: &HashMap<String, String>,
+        env_vars: &Environment,
     ) -> io::Result<String> {
         // eprintln!("Executing custom binary: {:?}", binary_path);
         let mut cmd = StdCommand::new(binary_path);
         cmd.args(&command.args);
 
-        for (key, value) in env_vars {
+        for (key, value) in env_vars.iter() {
             cmd.env(key, value);
         }
 
@@ -134,12 +130,12 @@ impl Runner {
     fn execute_system_command(
         &self,
         command: &Command,
-        env_vars: &HashMap<String, String>,
+        env_vars: &Environment,
     ) -> io::Result<String> {
         let mut cmd = StdCommand::new(&command.name);
         cmd.args(&command.args);
 
-        for (key, value) in env_vars {
+        for (key, value) in env_vars.iter() {
             cmd.env(key, value);
         }
 
@@ -291,7 +287,7 @@ mod tests {
             "echo".to_string(),
             vec!["hello".to_string(), "world".to_string()],
         );
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -311,7 +307,7 @@ mod tests {
         let runner = Runner::new(PathBuf::from("target/release"));
 
         let cmd = Command::new("definitely_nonexistent_command_12345".to_string(), vec![]);
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         assert!(result.is_err());
@@ -324,7 +320,7 @@ mod tests {
         let runner = Runner::new(PathBuf::from("target/release"));
 
         let cmd = Command::new("".to_string(), vec![]);
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         assert!(result.is_err());
@@ -332,15 +328,14 @@ mod tests {
 
     #[test]
     fn test_runner_with_environment_variables() {
-        let mut env_vars = HashMap::new();
-        env_vars.insert("TEST_ENV_VAR".to_string(), "42".to_string());
+        let mut env_vars = Environment::new();
+        env_vars.set("TEST_ENV_VAR", "42");
         let runner = Runner::new(PathBuf::from("target/release"));
 
         // Try to run a command that uses environment variables
         // Note: This test might be platform-dependent
 
         let cmd = Command::new("printenv".to_string(), vec!["TEST_ENV_VAR".to_string()]);
-        let env_vars: HashMap<String, String> = HashMap::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -378,7 +373,7 @@ mod tests {
         let runner = Runner::new(bin_dir.clone());
 
         let cmd = Command::new("test_cmd".to_string(), vec![]);
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         // Clean up
@@ -405,7 +400,7 @@ mod tests {
         let cmd =
             Command::new("cat".to_string(), vec![]).with_stdin("hello from stdin\n".to_string());
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -433,7 +428,7 @@ mod tests {
             ],
         );
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -464,7 +459,7 @@ mod tests {
         let cmd = Command::new("echo".to_string(), vec!["Hello World".to_string()])
             .with_stdout(output_path.clone());
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -509,7 +504,7 @@ mod tests {
             .with_stdout(output_path.clone())
             .with_append_stdout(true);
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -539,7 +534,7 @@ mod tests {
         let input_data = "line1\nline2\nline3\n";
         let cmd = Command::new("cat".to_string(), vec![]).with_stdin(input_data.to_string());
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -575,7 +570,7 @@ mod tests {
             .with_stdin(input_data.to_string())
             .with_stdout(output_path.clone());
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {
@@ -633,7 +628,7 @@ mod tests {
         let cmd = Command::new("echo".to_string(), vec!["Creating new file".to_string()])
             .with_stdout(output_path.clone());
 
-        let env_vars: HashMap<String, String> = HashMap::new();
+        let env_vars = Environment::new();
         let result = runner.execute(cmd, &env_vars);
 
         match result {

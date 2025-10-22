@@ -28,4 +28,14 @@ impl Environment {
         let vars = std::env::vars().collect::<HashMap<_, _>>();
         Self { vars }
     }
+
+    /// Get an iterator over key-value pairs
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &String)> {
+        self.vars.iter()
+    }
+
+    /// Check if environment is empty
+    pub fn is_empty(&self) -> bool {
+        self.vars.is_empty()
+    }
 }

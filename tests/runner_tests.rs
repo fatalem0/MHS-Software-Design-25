@@ -1,8 +1,8 @@
 // Integration tests for command execution and redirection
 // Tests: runner functionality, file I/O redirection, custom vs system commands, environment variables
 use cli_rust::modules::command::Command;
+use cli_rust::modules::environment::Environment;
 use cli_rust::modules::runner::Runner;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -11,8 +11,8 @@ fn create_test_runner() -> Runner {
     Runner::new(bin_path)
 }
 
-fn create_test_env_vars() -> HashMap<String, String> {
-    HashMap::new()
+fn create_test_env_vars() -> Environment {
+    Environment::new()
 }
 
 #[test]
@@ -224,8 +224,8 @@ fn test_runner_nonexistent_command() {
 
 #[test]
 fn test_runner_environment_variables() {
-    let mut env_vars = HashMap::new();
-    env_vars.insert("TEST_ENV_VAR".to_string(), "test_value".to_string());
+    let mut env_vars = Environment::new();
+    env_vars.set("TEST_ENV_VAR", "test_value");
 
     let bin_path = PathBuf::from("target/release");
     let runner = Runner::new(bin_path);

@@ -6,14 +6,14 @@ use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
 #[derive(Debug, Clone)]
 pub struct Init {
     /// Env variables
-    pub env_vars: HashMap<String, String>,
+    pub env_vars: Environment,
     /// Binary path for implemented commands
     pub bin_path: PathBuf,
 }
 
 impl Init {
     pub fn new() -> Self {
-        let env_vars = std::env::vars().collect();
+        let env_vars = Environment::capture_current();
 
         // Check for CLI_BIN_PATH env var
         let bin_path = if let Ok(custom_path) = std::env::var("CLI_BIN_PATH") {
@@ -43,22 +43,31 @@ impl Init {
 
     /// Create a new Init with custom environment variables and binary path.
     /// Suitable for testing
-    pub fn with_config(env_vars: HashMap<String, String>, bin_path: PathBuf) -> Self {
+    pub fn with_config(env_vars: Environment, bin_path: PathBuf) -> Self {
         Init { env_vars, bin_path }
     }
 
+    /// Create a new Init with custom environment variables from HashMap and binary path.
+    /// Suitable for testing
+    pub fn with_config_map(env_vars: HashMap<String, String>, bin_path: PathBuf) -> Self {
+        Init {
+            env_vars: Environment::with_vars(env_vars),
+            bin_path,
+        }
+    }
+
     /// Get an environment variable value
-    pub fn get_env(&self, key: &str) -> Option<&String> {
+    pub fn get_env(&self, key: &str) -> Option<&str> {
         self.env_vars.get(key)
     }
 
     /// Set an environment variable
     pub fn set_env(&mut self, key: String, value: String) {
-        self.env_vars.insert(key, value);
+        self.env_vars.set(key, value);
     }
 
     /// Get all environment variables as a reference
-    pub fn env_vars(&self) -> &HashMap<String, String> {
+    pub fn env_vars(&self) -> &Environment {
         &self.env_vars
     }
 }
@@ -70,8 +79,7 @@ impl Default for Init {
 }
 
 pub fn build_input_processor() -> InputProcessor {
-    let env = Environment::capture_current(); // реальные переменные окружения
-    InputProcessorBuilder::new(env).build()
+    InputProcessorBuilder::new().build()
 }
 
 #[cfg(test)]
@@ -91,8 +99,8 @@ mod tests {
         env_vars.insert("TEST_VAR".to_string(), "42".to_string());
         let bin_path = PathBuf::from("/test_path/bin");
 
-        let init = Init::with_config(env_vars, bin_path.clone());
-        assert_eq!(init.get_env("TEST_VAR"), Some(&"42".to_string()));
+        let init = Init::with_config_map(env_vars, bin_path.clone());
+        assert_eq!(init.get_env("TEST_VAR"), Some("42"));
         assert_eq!(init.bin_path, bin_path);
     }
 
@@ -100,6 +108,6 @@ mod tests {
     fn test_set_env() {
         let mut init = Init::new();
         init.set_env("NEW_VAR".to_string(), "new_value".to_string());
-        assert_eq!(init.get_env("NEW_VAR"), Some(&"new_value".to_string()));
+        assert_eq!(init.get_env("NEW_VAR"), Some("new_value"));
     }
 }
