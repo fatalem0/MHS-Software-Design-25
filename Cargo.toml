@@ -1,0 +1,35 @@
+[package]
+name = "cli_rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["kudiko <you@example.com>"]
+description = "A simple CLI shell implementation with REPL support, built-in commands, and external program execution."
+license = "MIT"
+repository = "https://github.com/fatalem0/MHS-Software-Design-25"
+readme = "README.md"
+
+[[bin]]
+name = "cli-shell"
+path = "src/main.rs"
+
+[[bin]]
+name = "echo"
+path = "src/bin/echo.rs"
+
+[[bin]]
+name = "cat"
+path = "src/bin/cat.rs"
+
+[[bin]]
+name = "wc"
+path = "src/bin/wc.rs"
+
+[[bin]]
+name = "pwd"
+path = "src/bin/pwd.rs"
+
+[dependencies]
+env = "1.0.1"
+pretty_assertions = "1.4.1"
+regex = "1.12.2"
+thiserror = "2.0.17"
