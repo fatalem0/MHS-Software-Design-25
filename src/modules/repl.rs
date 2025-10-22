@@ -4,6 +4,7 @@ use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
 use crate::modules::runner::Runner;
 
 use std::collections::HashMap;
+use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -67,12 +68,32 @@ impl Repl {
                     // Process as command
                     match self.input_processor.process(input) {
                         Ok(parsed_cmds) => {
-                            // Минимальная интеграция: выполняем команды последовательно.
-                            // (Если Runner позже будет уметь пайплайны — здесь можно заменить на execute_pipeline)
                             for pc in parsed_cmds {
-                                // Конвертация parsed -> runner::Command (пока игнорируем редиректы;
-                                // если нужно — учтите pc.stdin / pc.stdout / pc.append_stdout в Runner)
-                                let cmd = Command::new(pc.name.clone(), pc.args.clone());
+                                // Convert parsed command to runner::Command with redirection support
+                                let mut cmd = Command::new(pc.name.clone(), pc.args.clone());
+
+                                // Add redirection information
+                                if let Some(stdin_file) = pc.stdin {
+                                    // Read the file content for stdin redirection
+                                    match fs::read_to_string(&stdin_file) {
+                                        Ok(content) => {
+                                            cmd = cmd.with_stdin(content);
+                                        }
+                                        Err(e) => {
+                                            eprintln!(
+                                                "Error reading stdin file '{}': {}",
+                                                stdin_file, e
+                                            );
+                                            continue;
+                                        }
+                                    }
+                                }
+                                if let Some(stdout) = pc.stdout {
+                                    cmd = cmd
+                                        .with_stdout(stdout)
+                                        .with_append_stdout(pc.append_stdout);
+                                }
+
                                 self.execute_command(cmd);
                             }
                         }

@@ -1,5 +1,6 @@
 use crate::modules::command::Command;
 use std::collections::HashMap;
+use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::{Command as StdCommand, Stdio};
@@ -54,7 +55,25 @@ impl Runner {
             cmd.stdin(Stdio::piped());
         }
 
-        cmd.stdout(Stdio::piped());
+        // Handle stdout redirection
+        if let Some(stdout_file) = &command.stdout {
+            let file = if command.append_stdout {
+                OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(stdout_file)?
+            } else {
+                OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .open(stdout_file)?
+            };
+            cmd.stdout(Stdio::from(file));
+        } else {
+            cmd.stdout(Stdio::piped());
+        }
+
         cmd.stderr(Stdio::piped());
 
         let mut child = cmd.spawn()?;
@@ -70,7 +89,12 @@ impl Runner {
         let output = child.wait_with_output()?;
 
         if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            // If stdout was redirected to file, return empty string (no output to display)
+            if command.stdout.is_some() {
+                Ok(String::new())
+            } else {
+                Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            }
         } else {
             let error = String::from_utf8_lossy(&output.stderr);
             Err(io::Error::other(format!("Command failed: {}", error)))
@@ -90,7 +114,25 @@ impl Runner {
             cmd.stdin(Stdio::piped());
         }
 
-        cmd.stdout(Stdio::piped());
+        // Handle stdout redirection
+        if let Some(stdout_file) = &command.stdout {
+            let file = if command.append_stdout {
+                OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(stdout_file)?
+            } else {
+                OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .open(stdout_file)?
+            };
+            cmd.stdout(Stdio::from(file));
+        } else {
+            cmd.stdout(Stdio::piped());
+        }
+
         cmd.stderr(Stdio::piped());
 
         let mut child = cmd.spawn().map_err(|e| {
@@ -111,7 +153,12 @@ impl Runner {
         let output = child.wait_with_output()?;
 
         if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            // If stdout was redirected to file, return empty string (no output to display)
+            if command.stdout.is_some() {
+                Ok(String::new())
+            } else {
+                Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            }
         } else {
             let error = String::from_utf8_lossy(&output.stderr);
             Err(io::Error::other(format!("Command failed: {}", error)))
