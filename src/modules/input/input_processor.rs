@@ -29,6 +29,16 @@ pub struct InputProcessor {
 }
 
 impl InputProcessor {
+    /// Get mutable access to the environment
+    pub fn get_environment_mut(&mut self) -> Option<&mut Environment> {
+        Some(&mut self.env)
+    }
+
+    /// Get read-only access to the environment
+    pub fn get_environment(&self) -> &Environment {
+        &self.env
+    }
+
     pub fn process(&self, line: &str) -> Result<Vec<Command>> {
         // 1) Токенизируем всю строку (учитывая кавычки/экраны)
         let raw = Tokenizer::tokenize(line)?;

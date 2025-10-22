@@ -1,6 +1,7 @@
+use crate::modules::command::Command;
 use crate::modules::init::Init;
 use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
-use crate::modules::runner::{Command, Runner};
+use crate::modules::runner::Runner;
 
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -19,7 +20,7 @@ impl Repl {
         let _env_vars = init.env_vars().clone();
         let runner = Runner::new(bin_path.clone(), _env_vars.clone());
 
-        let env = Environment::with_vars(_env_vars.clone());
+        let env: Environment = Environment::with_vars(_env_vars.clone());
         let input_processor = InputProcessorBuilder::new(env).build();
 
         Repl {
@@ -30,7 +31,7 @@ impl Repl {
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         println!("CLI Shell started with bin path: {:?}", self.bin_path);
         println!("Type 'exit' to quit or 'help' for available commands.");
 
@@ -57,8 +58,13 @@ impl Repl {
                         continue;
                     }
 
-                    // For now, create a simple command from the input
-                    // In the future, this will be replaced with proper parsing and tokenization
+                    // Check if it's a variable assignment (NAME=VALUE)
+                    if self.is_variable_assignment(input) {
+                        self.handle_variable_assignment(input);
+                        continue;
+                    }
+
+                    // Process as command
                     match self.input_processor.process(input) {
                         Ok(parsed_cmds) => {
                             // Минимальная интеграция: выполняем команды последовательно.
@@ -94,12 +100,45 @@ impl Repl {
         }
     }
 
+    fn is_variable_assignment(&self, input: &str) -> bool {
+        // Simple check for pattern NAME=VALUE where NAME is a valid identifier
+        if let Some(eq_pos) = input.find('=') {
+            let name_part = &input[..eq_pos];
+            // Check if name part is a valid identifier (starts with letter/underscore, contains alphanumeric/underscore)
+            if !name_part.is_empty() 
+                && name_part.chars().all(|c| c.is_alphanumeric() || c == '_') 
+                && (name_part.chars().next().unwrap().is_alphabetic() || name_part.starts_with('_')) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn handle_variable_assignment(&mut self, input: &str) {
+        if let Some(eq_pos) = input.find('=') {
+            let name = &input[..eq_pos];
+            let value = &input[eq_pos + 1..];
+            
+            // Update environment in input processor
+            if let Some(env) = self.input_processor.get_environment_mut() {
+                env.set(name.to_string(), value.to_string());
+                println!("Set {}={}", name, value);
+            } else {
+                eprintln!("Failed to set environment variable");
+            }
+            
+            // Also update runner's environment
+            self.runner.set_env_var(name.to_string(), value.to_string());
+        }
+    }
+
     fn show_help(&self) {
         println!("Available commands:");
-        println!("  echo [args...]  - Print arguments to stdout");
-        println!("  help           - Show this help message");
-        println!("  exit           - Exit the shell");
-        println!("  [command]      - Execute any system command or custom implementation");
+        println!("  echo [args...]     - Print arguments to stdout");
+        println!("  NAME=VALUE         - Set environment variable");
+        println!("  help              - Show this help message");
+        println!("  exit              - Exit the shell");
+        println!("  [command]         - Execute any system command or custom implementation");
     }
 }
 
