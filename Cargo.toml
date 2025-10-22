@@ -16,6 +16,18 @@ path = "src/main.rs"
 name = "echo"
 path = "src/bin/echo.rs"
 
+[[bin]]
+name = "cat"
+path = "src/bin/cat.rs"
+
+[[bin]]
+name = "wc"
+path = "src/bin/wc.rs"
+
+[[bin]]
+name = "pwd"
+path = "src/bin/pwd.rs"
+
 [dependencies]
 env = "1.0.1"
 pretty_assertions = "1.4.1"
