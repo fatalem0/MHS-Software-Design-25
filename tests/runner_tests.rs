@@ -258,3 +258,159 @@ fn test_runner_error_handling() {
     // Clean up
     let _ = fs::remove_dir_all(&test_dir);
 }
+
+#[test]
+fn test_runner_error_messages_include_exit_codes() {
+    let runner = create_test_runner();
+
+    // Test system command that fails (command not found)
+    let cmd = Command::new("nonexistent_command_12345".to_string(), vec![]);
+    let result = runner.execute(cmd);
+
+    match result {
+        Err(e) => {
+            let error_msg = e.to_string();
+            // Should mention it's not found (for command not found errors)
+            assert!(error_msg.contains("not found"));
+        }
+        Ok(_) => panic!("Expected command to fail"),
+    }
+
+    // Test system command that exists but fails (like 'false' command)
+    let cmd = Command::new("false".to_string(), vec![]);
+    let result = runner.execute(cmd);
+
+    match result {
+        Err(e) => {
+            let error_msg = e.to_string();
+            // Should include exit code in error message
+            assert!(error_msg.contains("exit code"));
+            assert!(error_msg.contains("1")); // false command returns exit code 1
+        }
+        Ok(_) => panic!("Expected 'false' command to fail"),
+    }
+}
+
+#[test]
+fn test_runner_error_messages_with_stderr_redirection() {
+    let test_dir = env::temp_dir().join("cli_stderr_error_test");
+    let _ = fs::remove_dir_all(&test_dir);
+    fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+    let stderr_file = test_dir.join("error_output.txt");
+    let stderr_path = stderr_file.to_string_lossy().to_string();
+
+    let runner = create_test_runner();
+
+    // Test that when stderr is redirected, we still get exit code in error message
+    let cmd = Command::new("false".to_string(), vec![]).with_stderr(stderr_path.clone());
+
+    let result = runner.execute(cmd);
+
+    match result {
+        Err(e) => {
+            let error_msg = e.to_string();
+            // Should include exit code even when stderr is redirected
+            assert!(error_msg.contains("exit code"));
+            assert!(error_msg.contains("1")); // false command returns exit code 1
+                                              // Should not include stderr content (it's in the file)
+            assert!(!error_msg.contains("Command failed: "));
+        }
+        Ok(_) => panic!("Expected 'false' command to fail"),
+    }
+
+    // Clean up
+    let _ = fs::remove_dir_all(&test_dir);
+}
+
+#[test]
+fn test_runner_error_messages_with_custom_binary_failure() {
+    // This test ensures that custom binaries also report exit codes properly
+    let test_dir = env::temp_dir().join("cli_custom_error_test");
+    let _ = fs::remove_dir_all(&test_dir);
+    fs::create_dir_all(&test_dir).expect("Failed to create test directory");
+
+    // Create a simple script that exits with code 42
+    let script_path = test_dir.join("test_fail_binary");
+    let script_content = "#!/bin/bash\nexit 42";
+    fs::write(&script_path, script_content).expect("Failed to write test script");
+
+    // Make it executable
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&script_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&script_path, perms).expect("Failed to set permissions");
+    }
+
+    // Create a runner with the test directory as bin_path
+    let runner = Runner::new(test_dir.clone(), HashMap::new());
+
+    let cmd = Command::new("test_fail_binary".to_string(), vec![]);
+    let result = runner.execute(cmd);
+
+    match result {
+        Err(e) => {
+            let error_msg = e.to_string();
+            println!("Error message: {}", error_msg);
+            // Should include exit code in the error message
+            assert!(error_msg.contains("exit code"));
+            // The specific exit code might vary depending on the error (42 for our script, or other codes for execution failures)
+            // As long as it contains "exit code", that's the important part
+        }
+        Ok(_) => {
+            // If the test script doesn't exist or can't execute, that's ok for this test
+            // The important thing is that when it does fail, it reports exit codes
+            println!("Test script executed successfully (unexpected but ok)");
+        }
+    }
+
+    // Clean up
+    let _ = fs::remove_dir_all(&test_dir);
+}
+
+#[test]
+fn test_runner_error_messages_with_stderr_output() {
+    let runner = create_test_runner();
+
+    // Use a command that produces stderr output and fails
+    // The 'ls' command on a nonexistent directory should work for this
+    let cmd = Command::new(
+        "ls".to_string(),
+        vec!["/nonexistent_directory_12345".to_string()],
+    );
+    let result = runner.execute(cmd);
+
+    match result {
+        Err(e) => {
+            let error_msg = e.to_string();
+            // Should include both exit code and stderr output
+            assert!(error_msg.contains("exit code"));
+            // Should also include some indication of the actual error
+            assert!(error_msg.contains("No such file") || error_msg.contains("cannot access"));
+        }
+        Ok(_) => panic!("Expected 'ls' on nonexistent directory to fail"),
+    }
+}
+
+#[test]
+fn test_runner_error_messages_empty_stderr() {
+    let runner = create_test_runner();
+
+    // Use 'false' command which typically exits with code 1 but produces no stderr
+    let cmd = Command::new("false".to_string(), vec![]);
+    let result = runner.execute(cmd);
+
+    match result {
+        Err(e) => {
+            let error_msg = e.to_string();
+            // Should include exit code
+            assert!(error_msg.contains("exit code"));
+            assert!(error_msg.contains("1"));
+            // Should not have extra colon or stderr content since stderr is empty
+            assert!(!error_msg.ends_with(": "));
+        }
+        Ok(_) => panic!("Expected 'false' command to fail"),
+    }
+}

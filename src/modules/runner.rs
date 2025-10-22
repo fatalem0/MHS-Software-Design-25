@@ -114,15 +114,23 @@ impl Runner {
                 Ok(String::from_utf8_lossy(&output.stdout).to_string())
             }
         } else {
-            // If stderr is redirected, don't include it in error message (it's in the file)
+            // Always include exit code in error messages
+            let exit_code = output.status.code().unwrap_or(-1);
             let error = if command.stderr.is_some() {
-                format!(
-                    "Command failed with exit code: {}",
-                    output.status.code().unwrap_or(-1)
-                )
+                // If stderr is redirected, only show exit code (stderr is in the file)
+                format!("Command failed with exit code: {}", exit_code)
             } else {
+                // If stderr is not redirected, show both exit code and stderr output
                 let stderr_str = String::from_utf8_lossy(&output.stderr);
-                format!("Command failed: {}", stderr_str)
+                if stderr_str.trim().is_empty() {
+                    format!("Command failed with exit code: {}", exit_code)
+                } else {
+                    format!(
+                        "Command failed with exit code {}: {}",
+                        exit_code,
+                        stderr_str.trim()
+                    )
+                }
             };
             Err(io::Error::other(error))
         }
@@ -204,15 +212,23 @@ impl Runner {
                 Ok(String::from_utf8_lossy(&output.stdout).to_string())
             }
         } else {
-            // If stderr is redirected, don't include it in error message (it's in the file)
+            // Always include exit code in error messages
+            let exit_code = output.status.code().unwrap_or(-1);
             let error = if command.stderr.is_some() {
-                format!(
-                    "Command failed with exit code: {}",
-                    output.status.code().unwrap_or(-1)
-                )
+                // If stderr is redirected, only show exit code (stderr is in the file)
+                format!("Command failed with exit code: {}", exit_code)
             } else {
+                // If stderr is not redirected, show both exit code and stderr output
                 let stderr_str = String::from_utf8_lossy(&output.stderr);
-                format!("Command failed: {}", stderr_str)
+                if stderr_str.trim().is_empty() {
+                    format!("Command failed with exit code: {}", exit_code)
+                } else {
+                    format!(
+                        "Command failed with exit code {}: {}",
+                        exit_code,
+                        stderr_str.trim()
+                    )
+                }
             };
             Err(io::Error::other(error))
         }
