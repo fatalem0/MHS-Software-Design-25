@@ -1,5 +1,7 @@
 use crate::modules::init::Init;
 use crate::modules::runner::{Command, Runner};
+use crate::modules::input::{Environment, InputProcessor, InputProcessorBuilder};
+
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -8,6 +10,7 @@ pub struct Repl {
     bin_path: PathBuf,
     _env_vars: HashMap<String, String>,
     runner: Runner,
+    input_processor: InputProcessor,
 }
 
 impl Repl {
@@ -16,10 +19,15 @@ impl Repl {
         let _env_vars = init.env_vars().clone();
         let runner = Runner::new(bin_path.clone(), _env_vars.clone());
 
+
+        let env = Environment::with_vars(_env_vars.clone());
+        let input_processor = InputProcessorBuilder::new(env).build();
+
         Repl {
             bin_path,
             _env_vars,
             runner,
+            input_processor,
         }
     }
 
@@ -52,12 +60,18 @@ impl Repl {
 
                     // For now, create a simple command from the input
                     // In the future, this will be replaced with proper parsing and tokenization
-                    let parts: Vec<String> =
-                        input.split_whitespace().map(|s| s.to_string()).collect();
-
-                    if !parts.is_empty() {
-                        let command = Command::new(parts[0].clone(), parts[1..].to_vec());
-                        self.execute_command(command);
+                    match self.input_processor.process(input) {
+                        Ok(parsed_cmds) => {
+                            // Минимальная интеграция: выполняем команды последовательно.
+                            // (Если Runner позже будет уметь пайплайны — здесь можно заменить на execute_pipeline)
+                            for pc in parsed_cmds {
+                                // Конвертация parsed -> runner::Command (пока игнорируем редиректы;
+                                // если нужно — учтите pc.stdin / pc.stdout / pc.append_stdout в Runner)
+                                let cmd = Command::new(pc.name.clone(), pc.args.clone());
+                                self.execute_command(cmd);
+                            }
+                        }
+                        Err(e) => eprintln!("parse error: {e}"),
                     }
                 }
                 Err(error) => {
