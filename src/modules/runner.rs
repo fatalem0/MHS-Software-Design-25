@@ -556,7 +556,7 @@ mod tests {
         assert_eq!(cmd.args, vec!["arg"]);
         assert_eq!(cmd.stdin.as_deref(), Some("input data"));
         assert_eq!(cmd.stdout.as_deref(), Some("output.txt"));
-        assert_eq!(cmd.append_stdout, true);
+        assert!(cmd.append_stdout);
     }
 
     #[test]

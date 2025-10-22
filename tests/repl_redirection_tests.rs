@@ -5,14 +5,11 @@ use cli_rust::modules::{
     input::{Environment, InputProcessorBuilder},
     runner::Runner,
 };
-use std::path::PathBuf;
+use std::path::Path;
 use std::{env, fs};
 
 /// Test helper to simulate REPL command processing with redirection
-fn simulate_repl_command_with_redirection(
-    input: &str,
-    test_dir: &PathBuf,
-) -> Result<String, String> {
+fn simulate_repl_command_with_redirection(input: &str, test_dir: &Path) -> Result<String, String> {
     let init = Init::new();
     let env_vars = init.env_vars().clone();
     let runner = Runner::new(init.bin_path.clone(), env_vars.clone());

@@ -262,7 +262,7 @@ mod tests {
         assert_eq!(cmd.args, args);
         assert_eq!(cmd.stdin, Some(stdin_content));
         assert_eq!(cmd.stdout, Some(stdout_file));
-        assert_eq!(cmd.append_stdout, false);
+        assert!(!cmd.append_stdout);
     }
 
     #[test]
@@ -281,7 +281,7 @@ mod tests {
         assert_eq!(cmd.args, args);
         assert!(cmd.stdin.is_none());
         assert_eq!(cmd.stdout, Some(stdout_file));
-        assert_eq!(cmd.append_stdout, true);
+        assert!(cmd.append_stdout);
     }
 
     #[test]
