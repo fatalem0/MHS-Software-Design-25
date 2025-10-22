@@ -68,7 +68,22 @@ impl Repl {
                     // Process as command
                     match self.input_processor.process(input) {
                         Ok(parsed_cmds) => {
+                            // If any parsed command expands to a builtin like `exit` or `help`,
+                            // handle it here (after expansion). This allows constructs like
+                            // $x$y to expand to `exit` and be treated as the builtin.
+                            let mut should_break = false;
                             for pc in parsed_cmds {
+                                // Handle builtins after expansion
+                                if pc.name == "exit" && pc.args.is_empty() {
+                                    println!("Goodbye!");
+                                    should_break = true;
+                                    break;
+                                }
+                                if pc.name == "help" && pc.args.is_empty() {
+                                    self.show_help();
+                                    continue;
+                                }
+
                                 // Convert parsed command to runner::Command with redirection support
                                 let mut cmd = Command::new(pc.name.clone(), pc.args.clone());
 
@@ -95,6 +110,9 @@ impl Repl {
                                 }
 
                                 self.execute_command(cmd);
+                            }
+                            if should_break {
+                                break;
                             }
                         }
                         Err(e) => eprintln!("parse error: {e}"),

@@ -44,6 +44,7 @@ impl Runner {
         command: &Command,
         binary_path: &PathBuf,
     ) -> io::Result<String> {
+        eprintln!("Executing custom binary: {:?}", binary_path);
         let mut cmd = StdCommand::new(binary_path);
         cmd.args(&command.args);
 
