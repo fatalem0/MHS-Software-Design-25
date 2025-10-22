@@ -1,5 +1,7 @@
 Project of a simple CLI on Rust
 
+[![CI](https://github.com/fatalem0/MHS-Software-Design-25/actions/workflows/rust.yml/badge.svg?branch=task%2Fhw2)](https://github.com/fatalem0/MHS-Software-Design-25/actions/workflows/rust.yml)
+
 ## Supported functionality:
 - can run own implementations of `wc`, `echo`, `cat`, `pwd`
 - can run other commands if there is no own implementation
